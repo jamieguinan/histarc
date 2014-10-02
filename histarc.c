@@ -155,7 +155,8 @@ static int query_callback(void *i_ptr,
 
 void query(const char *text)
 {
-  char *q = sqlite3_mprintf("SELECT * from histarc where cmd like '%%%s%%'", text);
+  // char *q = sqlite3_mprintf("SELECT * from histarc where cmd like '%%%s%%'", text);
+  char *q = sqlite3_mprintf("SELECT * from histarc where cmd glob '*%s*'", text);
   /* "i" is passed along to the callback, and can be used for numbering output. 
      It will also hold the number of rows returned when the query is complete. */
   int i=0;			
