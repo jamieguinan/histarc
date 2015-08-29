@@ -1,6 +1,6 @@
 default: histarc_build
 
-include ../platforms.make
+include ../build/platforms.make
 
 OBJDIR ?= .
 
