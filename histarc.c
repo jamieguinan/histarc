@@ -14,12 +14,22 @@
 #include "sqlite3.h"
 #include "../cti/String.h"
 #include "../cti/Signals.h"
+#include "../cti/dbutil.h"
+#include "../cti/CTI.h"
 
 #define no_callback NULL
 #define no_errmsg NULL
 
 sqlite3 *db;
 static int done=0;
+
+SchemaColumn histarc_schema[] = {
+  { "sessionid", ""},
+  { "datetime", ""},
+  { "seq", ""},
+  { "wd", ""},
+  { "cmd", ""},
+};
 
 static void close_handler(int signo)
 {
@@ -97,30 +107,19 @@ static void record(char * buffer)
 	 wd,
 	 cmdstart);
 
-  if (1) { 
-    /* Begin sqlite action */
-    char *q = sqlite3_mprintf("INSERT INTO histarc VALUES(%Q, %Q, %Q, %Q, %Q)", 
-			      sessionid,
-			      timedate,
-			      seq,
-			      wd,
-			      cmdstart);
-
-  retry:
-    rc = sqlite3_exec(db, q, no_callback, 0, no_errmsg);
+  do { 
+    rc = sql_exec_free_query(db, sqlite3_mprintf("INSERT INTO histarc VALUES(%Q, %Q, %Q, %Q, %Q)", 
+						 sessionid,
+						 timedate,
+						 seq,
+						 wd,
+						 cmdstart),
+			     no_callback, 0, no_errmsg);
     if (rc == 0) {
       // printf("insert Ok\n");
       sqlite3_exec(db, "COMMIT;", no_callback, 0, no_errmsg);
     }
-    else {
-      fprintf(stderr, "%s\nerror %d: %s\n", q, rc, sqlite3_errmsg(db));
-      if (rc == 5) {
-	goto retry;
-      }
-    }
-    sqlite3_free(q);
-    /* End sqlite action */
-  }
+  } while (rc == 5);
 
  out:
   if (!String_list_is_none(tokens)) {
@@ -156,15 +155,11 @@ static int query_callback(void *i_ptr,
 void query(const char *text)
 {
   // char *q = sqlite3_mprintf("SELECT * from histarc where cmd like '%%%s%%'", text);
-  char *q = sqlite3_mprintf("SELECT * from histarc where cmd glob '*%s*'", text);
   /* "i" is passed along to the callback, and can be used for numbering output. 
      It will also hold the number of rows returned when the query is complete. */
-  int i=0;			
-  int rc = sqlite3_exec(db, q, query_callback, (void*)&i, no_errmsg);
-  if (rc != 0) {
-    fprintf(stderr, "%s\nerror %d: %s\n", q, rc, sqlite3_errmsg(db));
-  }
-  sqlite3_free(q);
+  int i=0;
+  int rc = sql_exec_free_query(db, sqlite3_mprintf("SELECT * from histarc where cmd glob '*%s*'", text),
+			   query_callback, (void*)&i, no_errmsg);
 }
 
 
@@ -227,8 +222,7 @@ int main(int argc, char *argv[])
   }
 
   /* Create table if it doesn't already exists. */
-  q = "CREATE TABLE IF NOT EXISTS histarc(sessionid, datetime, seq, wd, cmd);";
-  rc = sqlite3_exec(db, q, no_callback, 0, no_errmsg);
+  rc = db_check(db, "histarc", histarc_schema, cti_table_size(histarc_schema), "");
   if(rc != 0) {
     fprintf(stderr, "%s\nerror %d: %s\n", q, rc, sqlite3_errmsg(db));
       return 1;
@@ -237,11 +231,9 @@ int main(int argc, char *argv[])
   /* COMMIT operations will trigger a Linux VFS sync/flush, which
      slows down each command by about 0.2 seconds, which is 
      palpable and annoying.  Use a PRAGMA to turn this off. */
-  q = "PRAGMA synchronous = 0;";
-  rc = sqlite3_exec(db, q, no_callback, 0, no_errmsg);
+  rc = sql_exec_free_query(db, sqlite3_mprintf("PRAGMA synchronous = 0;"), no_callback, 0, no_errmsg);
   if(rc != 0) {
-    fprintf(stderr, "%s\nerror %d: %s\n", q, rc, sqlite3_errmsg(db));
-      return 1;
+    return 1;
   }
   
 
