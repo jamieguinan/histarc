@@ -7,10 +7,11 @@
  */
 
 #include <stdio.h>		/* fprintf, NULL */
-#include <unistd.h>		/* gethostname */
-#include <stdlib.h>		/* getenv */
+#include <sys/types.h>		/* getpid */
+#include <unistd.h>		/* gethostname, getpid */
+#include <stdlib.h>		/* getenv, srand, rand */
 #include <string.h>		/* strlen */
-#include <time.h>		/* time(), localtime() */
+#include <time.h>		/* time, localtime, nanosleep */
 #include "sqlite3.h"
 #include "../cti/String.h"
 #include "../cti/Signals.h"
@@ -35,6 +36,32 @@ static void close_handler(int signo)
 {
   done=1;
 }
+
+int busy_handler(void * ptr, int retry_sequence)
+{
+  /*
+   * https://www.sqlite.org/faq.html#q5
+   * https://www.sqlite.org/c3ref/busy_handler.html 
+   */
+
+  /* I don't care about the args. */
+
+  // printf("%s %d...\n", __func__, retry_sequence); fflush(stdout);
+
+  /* Sleep up to 1/4 second. */
+  struct timespec ts;
+  srand(getpid());
+  ts.tv_sec = 0;
+  ts.tv_nsec = 
+    (999999999L 		/* max nanoseconds */
+     * rand()) 			/* times 0..RAND_MAX */
+    / RAND_MAX 			/* scale back to nanoseconds */
+    / 4 ;			/* divide to 1/4 second max */
+  nanosleep(&ts, NULL);
+
+  return 1;			/* Always retry. */
+}
+
 
 /* A previous version of histarc that used a long-running process
    supported ignoring indentical commands.  Not a big deal... */
@@ -162,7 +189,6 @@ void query(const char *text)
 			   query_callback, (void*)&i, no_errmsg);
 }
 
-
 void usage(const char *argv0)
 {
   fprintf(stderr, "Usage: %s [command [args...]]\n", argv0);
@@ -173,6 +199,7 @@ void usage(const char *argv0)
 
 enum { HISTARC_RECORD, HISTARC_QUERY};
 int mode = HISTARC_RECORD;
+
 
 int main(int argc, char *argv[])
 {
@@ -215,24 +242,30 @@ int main(int argc, char *argv[])
 
   /* Open database. */
   rc = sqlite3_open(s(dbname), &db);
-  if(rc != 0) {
+  if (rc != 0) {
     fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
     sqlite3_close(db);
     return 1;
   }
 
+  rc = sqlite3_busy_handler(db, busy_handler, NULL);
+  if (rc != 0) {
+    fprintf(stderr, "Busy handler registration failed.\n");
+    return 1;
+  }
+
   /* Create table if it doesn't already exists. */
   rc = db_check(db, "histarc", histarc_schema, cti_table_size(histarc_schema), "");
-  if(rc != 0) {
+  if (rc != 0) {
     fprintf(stderr, "%s\nerror %d: %s\n", q, rc, sqlite3_errmsg(db));
-      return 1;
+    return 1;
   }
 
   /* COMMIT operations will trigger a Linux VFS sync/flush, which
      slows down each command by about 0.2 seconds, which is 
      palpable and annoying.  Use a PRAGMA to turn this off. */
   rc = sql_exec_free_query(db, sqlite3_mprintf("PRAGMA synchronous = 0;"), no_callback, 0, no_errmsg);
-  if(rc != 0) {
+  if (rc != 0) {
     return 1;
   }
   
