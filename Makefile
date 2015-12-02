@@ -14,7 +14,7 @@ $(OBJDIR)/histarc: $(SRCS) Makefile
 	$(CC) $(CPPFLAGS) -O $(SRCS) -o $(OBJDIR)/histarc $(LDFLAGS)
 
 install: histarc_build
-	cp -v $(OBJDIR)/histarc$(EXEEXT) /platform/$(ARCH)/bin
+	cp -v $(OBJDIR)/histarc$(EXEEXT) /platform/$(ARCH)/bin/
 
 clean:
 	rm -f $(OBJDIR)/histarc
