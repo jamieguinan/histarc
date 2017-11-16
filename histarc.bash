@@ -23,3 +23,9 @@ function histarc_update {
   fi
   export HISTARC_LASTWD=$(pwd)
 }
+
+
+function histarc_disable {
+    export NOHISTARC=1
+    export HISTFILE=/dev/null
+}
