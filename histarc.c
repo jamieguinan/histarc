@@ -1,9 +1,10 @@
 /* 
   This is an attempt to archive all my bash command history for later
   reference.  It uses an sqlite database to record all the history.
-  It requires a special setting of PROMPT_COMMAND and a special bash
-  function called histupdate, usually sourced by or added to ~/.bashrc.
-  See "./histarc.bash"
+  "histarc.bash" defines a function `histarc_update` that provides
+  an interface to the `histarc` program. In my bash interactive
+  config files I use the bash setting,
+    PROMPT_COMMAND=histarc_update
  */
 
 #include <stdio.h>		/* fprintf, NULL */
@@ -65,10 +66,6 @@ int busy_handler(void * ptr, int retry_sequence)
 }
 
 
-/* A previous version of histarc that used a long-running process
-   supported ignoring indentical commands.  Not a big deal... */
-// static char *lastcmd;
-
 static void record(char * buffer)
 {
   int rc;
@@ -111,23 +108,6 @@ static void record(char * buffer)
   /* Trim newline. */
   char *newline = strchr(cmdstart, '\n');
   if (newline) { *newline = 0; }
-
-#if 0
-  /* Compare to last command. */
-  if (!lastcmd) {
-    lastcmd = strdup(cmdstart);
-  }
-  else { 
-    if (streq(lastcmd, cmdstart)) {
-      /* Skip sqlite action if same command. */
-      goto out;
-    }
-    else {
-      free(lastcmd);
-      lastcmd = strdup(cmdstart);
-    }
-  }
-#endif
 
   if (0) printf("sessionid=%s\ntimedate=%s\nseq=%s\nwd=%s\ncmd=%s\n",
 	 sessionid,
