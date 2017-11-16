@@ -17,6 +17,7 @@
 #include "../cti/Signals.h"
 #include "../cti/dbutil.h"
 #include "../cti/CTI.h"
+#include "../cti/localptr.h"
 
 #define no_callback NULL
 #define no_errmsg NULL
@@ -24,12 +25,13 @@
 sqlite3 *db;
 static int done=0;
 
+
 SchemaColumn histarc_schema[] = {
-  { "sessionid", ""},
-  { "datetime", ""},
-  { "seq", ""},
-  { "wd", ""},
-  { "cmd", ""},
+  [0] = { "sessionid", ""},
+  [1] = { "datetime", ""},
+  [2] = { "seq", ""},
+  [3] = { "wd", ""},
+  [4] = { "cmd", ""},
 };
 
 static void close_handler(int signo)
@@ -169,12 +171,26 @@ static int query_callback(void *i_ptr,
   }
   (*pi) += 1;
 
-  // column_headers[3] is "wd"
-  // column_headers[4] is "cwd"
+  char * d = column_strings[1];
+  if (strlen(d) != 14) {
+    fprintf(stderr, "bad date string in entry: %s\n", d);
+    return 1;
+  }
 
-  printf("\n[%s]\n%s\n", 
-	 column_strings[3], 
-	 column_strings[4]);
+  localptr(String, datestr) = String_sprintf("%c%c%c%c-%c%c-%c%c %c%c:%c%c:%c%c"
+                                             , d[0], d[1], d[2], d[3]
+                                             , d[4], d[5]
+                                             , d[6], d[7]
+                                             , d[8], d[9]
+                                             , d[10], d[11]
+                                             , d[12], d[13]
+                                             );
+
+  printf("\n[%s] %s\n%s\n"
+	 , column_strings[3]
+         , s(datestr)
+	 , column_strings[4]
+         );
   return 0;
 }
 
