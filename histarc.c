@@ -35,6 +35,8 @@ SchemaColumn histarc_schema[] = {
   [4] = { "cmd", ""},
 };
 
+static const char * histarc_constraints = "UNIQUE(sessionid,datetime)";
+
 static void close_handler(int signo)
 {
   done=1;
@@ -324,7 +326,7 @@ int main(int argc, char *argv[])
   }
 
   /* Create table if it doesn't already exist. */
-  rc = db_check(db, "histarc", histarc_schema, cti_table_size(histarc_schema), "");
+  rc = db_check(db, "histarc", histarc_schema, cti_table_size(histarc_schema), histarc_constraints);
   if (rc != 0) {
     fprintf(stderr, "%s\nerror %d: %s\n", q, rc, sqlite3_errmsg(db));
     return 1;
