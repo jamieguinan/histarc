@@ -191,9 +191,8 @@ void query(const char *text)
 static int merge_callback(void *i_ptr, 
                            int num_columns, char **column_strings, char **column_headers)
 {
-  /* This called for each row of the merge database, and in here we insert into
-     the current database. The INSERT...EXCEPT query runs rather slowly, it could
-     probably be sped up if used UNIQUE constraint. */
+  /* This called for each row of the merge database, and in here we
+     insert into the current database. */
   int * rows = i_ptr;
   *rows += 1;
   if (*rows % 1000 == 0) {
