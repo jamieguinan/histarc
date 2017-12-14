@@ -181,8 +181,77 @@ void query(const char *text)
   /* "i" is passed along to the callback, and can be used for numbering output. 
      It will also hold the number of rows returned when the query is complete. */
   int i=0;
-  int rc = sql_exec_free_query(db, sqlite3_mprintf("SELECT * from histarc where cmd glob '*%s*'", text),
+  int rc = sql_exec_free_query(db, sqlite3_mprintf("SELECT * from histarc where cmd glob '*%s*' ORDER BY datetime", text),
 			   query_callback, (void*)&i, no_errmsg);
+}
+
+
+static int merge_callback(void *i_ptr, 
+                           int num_columns, char **column_strings, char **column_headers)
+{
+  /* This called for each row of the merge database, and in here we insert into
+     the current database. The INSERT...EXCEPT query runs rather slowly, it could
+     probably be sped up if used UNIQUE constraint. */
+  int * rows = i_ptr;
+  *rows += 1;
+  printf("row %d\n", *rows);
+  if (num_columns != cti_table_size(histarc_schema)) {
+    fprintf(stderr, "%s: wrong number of columns\n", __func__);
+    return 1;       /* abort query */
+  }
+  int rc = sql_exec_free_query(db
+                               , sqlite3_mprintf("INSERT INTO histarc VALUES(%Q, %Q, %Q, %Q, %Q)"
+                                                 " EXCEPT SELECT * FROM histarc WHERE"
+                                                 " %s=%Q"
+                                                 " AND %s=%Q"
+                                                 " AND %s=%Q"
+                                                 " AND %s=%Q"
+                                                 " AND %s=%Q"
+                                                 
+                                                 , column_strings[0]
+                                                 , column_strings[1]
+                                                 , column_strings[2]
+                                                 , column_strings[3]
+                                                 , column_strings[4]
+                                                 
+                                                 , column_headers[0], column_strings[0]
+                                                 , column_headers[1], column_strings[1]
+                                                 , column_headers[2], column_strings[2]
+                                                 , column_headers[3], column_strings[3]
+                                                 , column_headers[4], column_strings[4]
+                                                 )
+                               , no_callback
+                               , 0
+                               , no_errmsg
+                               );
+  return rc;
+}
+
+void merge(const char *xdbfile)
+{
+  /* Merge all the records into the named database file into the
+     current database. */
+  sqlite3 *xdb;
+  int rc = sqlite3_open(xdbfile, &xdb);
+  if (rc != 0) {
+    fprintf(stderr, "Can't open merge database: %s\n", sqlite3_errmsg(db));
+    sqlite3_close(xdb);
+    goto out;
+  }
+
+  if (db_schema_test(xdb, "histarc", histarc_schema, cti_table_size(histarc_schema)) != 0) {
+    fprintf(stderr, "bad schema in %s\n", xdbfile);
+    goto out;
+  }
+  
+  printf("schema in %s Ok\n", xdbfile);
+  int rows=0;
+  sql_exec_free_query(xdb, sqlite3_mprintf("SELECT * from histarc"),
+                      merge_callback, (void*)&rows, no_errmsg);
+  printf("%d rows\n", rows);
+
+ out:
+  sqlite3_close(xdb);
 }
 
 void usage(const char *argv0)
@@ -191,9 +260,10 @@ void usage(const char *argv0)
   fprintf(stderr, "Available commands:\n");
   fprintf(stderr, "  record <command line ...>\n");
   fprintf(stderr, "  query <pattern...>\n");
+  fprintf(stderr, "  merge <dbfile>\n");  
 }
 
-enum { HISTARC_RECORD, HISTARC_QUERY};
+enum { HISTARC_RECORD, HISTARC_QUERY, HISTARC_MERGE };
 int mode = HISTARC_RECORD;
 
 
@@ -217,6 +287,9 @@ int main(int argc, char *argv[])
   }
   else if (streq(argv[1], "query")) {
     mode = HISTARC_QUERY;
+  }
+  else if (streq(argv[1], "merge")) {
+    mode = HISTARC_MERGE;
   }
   else {
     usage(argv[0]);
@@ -250,7 +323,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  /* Create table if it doesn't already exists. */
+  /* Create table if it doesn't already exist. */
   rc = db_check(db, "histarc", histarc_schema, cti_table_size(histarc_schema), "");
   if (rc != 0) {
     fprintf(stderr, "%s\nerror %d: %s\n", q, rc, sqlite3_errmsg(db));
@@ -289,6 +362,13 @@ int main(int argc, char *argv[])
     /* FIXME: Concatenate additional args if supplied. */
     query(argv[2]);
   }
+  else if (mode == HISTARC_MERGE && argc == 2) {
+    fprintf(stderr, "Please supply a database file from another system.\n");
+  }
+  else if (mode == HISTARC_MERGE && argc == 3) {
+    merge(argv[2]);
+  }
+  
 
   sqlite3_close(db);
 
