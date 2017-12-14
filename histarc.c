@@ -196,31 +196,20 @@ static int merge_callback(void *i_ptr,
      probably be sped up if used UNIQUE constraint. */
   int * rows = i_ptr;
   *rows += 1;
-  printf("row %d\n", *rows);
+  if (*rows % 1000 == 0) {
+    printf("row %d\n", *rows);
+  }
   if (num_columns != cti_table_size(histarc_schema)) {
     fprintf(stderr, "%s: wrong number of columns\n", __func__);
     return 1;       /* abort query */
   }
   int rc = sql_exec_free_query(db
-                               , sqlite3_mprintf("INSERT INTO histarc VALUES(%Q, %Q, %Q, %Q, %Q)"
-                                                 " EXCEPT SELECT * FROM histarc WHERE"
-                                                 " %s=%Q"
-                                                 " AND %s=%Q"
-                                                 " AND %s=%Q"
-                                                 " AND %s=%Q"
-                                                 " AND %s=%Q"
-                                                 
+                               , sqlite3_mprintf("INSERT OR IGNORE INTO histarc VALUES(%Q, %Q, %Q, %Q, %Q)"
                                                  , column_strings[0]
                                                  , column_strings[1]
                                                  , column_strings[2]
                                                  , column_strings[3]
                                                  , column_strings[4]
-                                                 
-                                                 , column_headers[0], column_strings[0]
-                                                 , column_headers[1], column_strings[1]
-                                                 , column_headers[2], column_strings[2]
-                                                 , column_headers[3], column_strings[3]
-                                                 , column_headers[4], column_strings[4]
                                                  )
                                , no_callback
                                , 0
