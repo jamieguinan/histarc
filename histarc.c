@@ -35,7 +35,7 @@ SchemaColumn histarc_schema[] = {
   [4] = { "cmd", ""},
 };
 
-static const char * histarc_constraints = "UNIQUE(sessionid,datetime)";
+static const char * histarc_constraints = "UNIQUE(sessionid,datetime,seq)";
 
 static void close_handler(int signo)
 {
@@ -98,7 +98,11 @@ static void record(char * buffer)
 
   String_list *tokens = String_split_s(buffer, " ");
   char *sessionid = s(String_list_get(tokens, 0));
-  char *seq = s(String_list_get(tokens, 1));
+
+  /* 2017-Dec-15: Changed seq from history index (tokens[1]), which only updates
+     once per second, to pid */
+  String *pidstr = String_sprintf("%d", getpid());
+  char *seq = s(pidstr);
 
   /* Command starts after 2nd space. */
   char *cmdstart = strstr(strstr(buffer, " ")+1, " ")+1;
