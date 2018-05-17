@@ -10,7 +10,6 @@
 #include <time.h>		/* time, localtime, nanosleep */
 #include "sqlite3.h"
 #include "../cti/String.h"
-#include "../cti/Signals.h"
 #include "../cti/dbutil.h"
 #include "../cti/CTI.h"
 #include "../cti/localptr.h"
@@ -19,7 +18,6 @@
 #define no_errmsg NULL
 
 sqlite3 *db;
-static int done=0;
 
 
 SchemaColumn histarc_schema[] = {
@@ -32,10 +30,6 @@ SchemaColumn histarc_schema[] = {
 
 static const char * histarc_constraints = "UNIQUE(sessionid,datetime,seq)";
 
-static void close_handler(int signo)
-{
-  done=1;
-}
 
 int busy_handler(void * ptr, int retry_sequence)
 {
@@ -284,14 +278,6 @@ int main(int argc, char *argv[])
     usage(argv[0]);
     return 1;
   }
-
-  /* Handle some signals */
-  //Signals_handle(1, close_handler);
-  //Signals_handle(2, close_handler);
-  //Signals_handle(3, close_handler);
-  //Signals_handle(6, close_handler);
-  //Signals_handle(7, close_handler);
-  //Signals_handle(13, close_handler);
 
   /* Figure out database path. */
   char hostname[256] = {};
