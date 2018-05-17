@@ -214,7 +214,6 @@ void merge(const char *xdbfile)
   int rc = sqlite3_open(xdbfile, &xdb);
   if (rc != 0) {
     fprintf(stderr, "Can't open merge database: %s\n", sqlite3_errmsg(db));
-    sqlite3_close(xdb);
     goto out;
   }
 
