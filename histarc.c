@@ -85,7 +85,7 @@ static void record(char * buffer)
     return;
   }
 
-  String_list *tokens = String_split_s(buffer, " ");
+  localptr(String_list, tokens) = String_split_s(buffer, " ");
   char *sessionid = s(String_list_get(tokens, 0));
 
   /* 2017-Dec-15: Changed seq from history index (tokens[1]), which only updates
@@ -97,7 +97,7 @@ static void record(char * buffer)
   char *cmdstart = strstr(strstr(buffer, " ")+1, " ")+1;
   if (!cmdstart) {
     fprintf(stderr, "separator not found\n");
-    goto out;
+    return;
   }
 
   /* Trim newline. */
@@ -125,10 +125,6 @@ static void record(char * buffer)
     }
   } while (rc == 5);
 
- out:
-  if (!String_list_is_none(tokens)) {
-    String_list_free(&tokens);
-  }
 }
 
 
