@@ -1,10 +1,5 @@
 /* 
-  This is an attempt to archive all my bash command history for later
-  reference.  It uses an sqlite database to record all the history.
-  "histarc.bash" defines a function `histarc_update` that provides
-  an interface to the `histarc` program. In my bash interactive
-  config files I use the bash setting,
-    PROMPT_COMMAND=histarc_update
+ * See README.md for notes.
  */
 
 #include <stdio.h>		/* fprintf, NULL */
