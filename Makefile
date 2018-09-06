@@ -9,7 +9,7 @@ histarc_build: $(OBJDIR)/histarc$(EXEEXT)
 LDFLAGS += -lsqlite3 -lpthread
 CPPFLAGS+=-DHAVE_SQLITE3
 
-SRCS=histarc.c ../cti/String.c ../cti/Mem.c ../cti/Cfg.c ../cti/dbutil.c ../cti/dpf.c
+SRCS=histarc.c ../cti/String.c ../cti/Mem.c ../cti/Cfg.c ../cti/dbutil.c
 
 $(OBJDIR)/histarc: $(SRCS) Makefile
 	$(CC) $(CPPFLAGS) -O $(SRCS) -o $(OBJDIR)/histarc $(LDFLAGS)
