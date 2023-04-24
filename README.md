@@ -15,50 +15,19 @@ started such an effort in 1982 on my VIC-20, I should be able to fit
 my entire lifetime's worth of command-line interaction in tens or
 hundreds of MB.
 
-## C/Sqlite version
-
-The main version of `histarc` is written in C and uses an sqlite
-database to record command history.
-
-`histarc.bash` defines a shell function `histarc_update` which calls
-the `histarc` binary via `PROMPT_COMMAND`. In my bash interactive
-config files (.bashrc) I set it up like this,
-
-    # histarc support.
-    HISTARCBASH=${HOME}/projects/histarc/histarc.bash
-    if [ -f $HISTARCBASH ]
-    then
-      source $HISTARCBASH
-    fi
-
-histarc uses a few files from my
-[CTI](https://github.com/jamieguinan/cti) project. Clone that in an
-adjacent folder if you want to build histarc.
-
-`hq` is a shell function convenience wrapper around `histarc query`.
-Note that it uses sqlite glob patterns and not regexes.
-
 ## Minimal edition
 
-The C version with its sqlite database has its advantages. It is
-robust, it includes a useful `merge` subcommand to merge databases
-from other systems, and there is no temptation to manually edit the
-database outside of sqlite.
+I had a C version that used an sqlite database, but it had problems,
+including that piping "hq query | less" would lock the database and
+freeze all other running bash sessions that tried to update it.
 
-But I realized that it a simpler version is
-possible. `histarc-minimal.bash` contains an alternative
-implementation that simply appends a text file in the users home
-folder. For this version, `hq` uses `grep` to query, so it uses
-regexes, which is different from the C version which uses glob
-patterns.
+The simpler version `histarc-minimal.bash` simply appends a text file
+in the users home folder. `hq` uses `grep` to query.
 
-
-## Common features
-
-Both versions include a `histarc_disable` shell function to disable
-history saving and set the HISTFILE to `/dev/null`, which is useful in
-cases like entering passwords or other sensitive information. It might
-be a good idea to audit and scrub history archives periodically.
+A `histarc_disable` shell function disables history saving and sets
+the HISTFILE to `/dev/null` for the duration of the shell session,
+which is useful in cases like entering passwords or other sensitive
+information.
 
 ## Similar efforts
 
