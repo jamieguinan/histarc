@@ -1,9 +1,26 @@
 # Histarc
 
-`histarc` is an attempt to archive *all* my bash command history for
-later reference. I started this in 2014, and it has been useful on
-many occasions to recall obscure command options, or remember the
-context around certain commands.
+## Quick start
+
+In your `.bashrc`,
+```
+source histarc/histarc-minimal.bash
+```
+
+Use `hq` to query your command history using grep regex expressions,
+
+```
+$ hq ffmpeg.*preset
+$ hq git.branch
+$ hq docker.*letsencrypt
+```
+
+## What is this?
+
+`histarc` attempts to archive *all* bash command history for later
+reference. I started this in 2014, and it has been useful on many
+occasions to recall obscure command options, or remember the context
+around certain commands.
 
 This relieves me from worrying about remembering particular command
 invocations or writing them down. I know the history is there, and I
